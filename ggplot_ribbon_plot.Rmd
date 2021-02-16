@@ -1,0 +1,110 @@
+---
+title: "COVID-19 data"
+author: "sirui"
+date: "2/16/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Here I visualize some macro variables under the impact of COVID-19 
+```{r}
+CO2raw <- read.xlsx(here('EmissionData',
+                         'carbon-monitor-maingraphdatas.xlsx'),sheet = 1)
+options(digits = 2)
+options(scipen = 999)
+
+CO2data <- CO2raw %>% 
+  rename(CountryRegion  = `country./.group.of.countries`) %>% 
+  mutate(date = lubridate::dmy(CO2raw$date)) %>% 
+  filter(!is.na(sector))
+
+CO2_country_sector_dif <- CO2data %>% 
+  group_by(CountryRegion,sector) %>% 
+  #summarize(sum = sum(MtCO2.per.day)) %>% 
+  mutate(dif_MtCO2.per.day = MtCO2.per.day - lag(MtCO2.per.day, default = 0),
+         year = factor(year(date)),
+         yday = as.Date(yday(date),'2020-01-01'))
+```
+What you might do wrong 
+```{r}
+#WRONG this is stacked 
+CO2_country_sector_dif %>% 
+  filter(CountryRegion == 'China', sector == 'Power') %>% 
+  ggplot() +
+  geom_area(aes(y = MtCO2.per.day, x = yday, color = year, fill = year,
+                alpha = 0.5)) + 
+  theme_minimal() + 
+  scale_x_date(date_labels = '%m/%d')
+```
+# How to use ggplot2 to plot a ribbon graph to show increase/decrease trends 
+```{r}
+#Using data empowered by Carbon Monitor (https://carbonmonitor.org/)
+
+CO2_country_sector_dif %>% 
+  filter(CountryRegion == 'China', sector == 'Power') %>% 
+  ggplot(aes(y = MtCO2.per.day, x = yday)) + 
+  geom_line(aes(color = year)) +
+  scale_color_manual(values = c("#00C1AA", "#FC717F")) +
+  theme_minimal()
+
+CO2_country_sector_dif %>% 
+  filter(CountryRegion == 'China', sector == 'Power') %>% 
+  ggplot(aes(y = MtCO2.per.day, x = yday)) + 
+  geom_line(aes(color = year)) +
+  geom_area(aes(fill = year, alpha = 0.5), position = position_dodge(0.8)) +
+  scale_color_manual(values = c("#00C1AA", "#FC717F")) +
+  scale_fill_manual(values = c("#00C1AA", "#FC717F")) +
+  theme_minimal()
+
+CO2_country_sector_dif %>% 
+  filter(CountryRegion == 'China', sector == 'Power') %>% 
+  group_by(yday) %>% 
+  mutate(min = min(MtCO2.per.day)) %>% 
+  ggplot(aes(y = MtCO2.per.day, x = yday)) + 
+  geom_line(aes(color = year)) +
+  # geom_area(aes(fill = year, alpha = 0.5), position = position_dodge(0.8)) +
+  geom_ribbon(aes(ymax = MtCO2.per.day, ymin = min, fill = year)) +
+  scale_color_manual(values = c("#00C1AA", "#FC717F")) +
+  scale_fill_manual(values = c("#00C1AA", "#FC717F")) +
+  theme_minimal()
+
+
+CO2_country_sector_dif %>% 
+  filter(CountryRegion == 'China', sector == 'Power') %>% 
+  group_by(yday) %>% 
+  mutate(min = min(MtCO2.per.day)) %>% 
+  ggplot(aes(y = MtCO2.per.day, x = yday)) + 
+  geom_line(aes(color = year)) +
+  # geom_area(aes(fill = year, alpha = 0.5), position = position_dodge(0.8)) +
+  geom_ribbon(aes(ymax = MtCO2.per.day, ymin = min, fill = year)) +
+  scale_color_manual(values = c("#00C1AA", "#FC717F")) +
+  scale_fill_manual(values = c("#00C1AA", "#FC717F")) + 
+  theme_minimal() +
+  scale_x_date(date_labels = '%m/%d', date_breaks = '1 months') +
+  scale_y_continuous(n.breaks = 10) + 
+  ggtitle('China Power Sector') + 
+  xlab('months')
+
+```
+
+
+```{r}
+CO2_country_sector_dif <- CO2data %>% 
+  group_by(CountryRegion,sector) %>% 
+  #summarize(sum = sum(MtCO2.per.day)) %>% 
+  mutate(dif_MtCO2.per.day = MtCO2.per.day - lag(MtCO2.per.day, default = 0),
+         year = factor(year(date)),
+         yday = as.Date(yday(date),'2020-01-01'))
+
+#WRONG this is stacked 
+CO2_country_sector_dif %>% 
+  filter(CountryRegion == 'China', sector == 'Power') %>% 
+  ggplot() +
+  geom_area(aes(y = MtCO2.per.day, x = yday, color = year, fill = year,
+                alpha = 0.5)) + 
+  theme_minimal() + 
+  scale_x_date(date_labels = '%m/%d')
+```
